@@ -1,0 +1,56 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { api, movieEmbedUrl, formatRating, getYear } from '../lib/api.js';
+import MediaGrid from '../components/MediaGrid.jsx';
+import Player from '../components/Player.jsx';
+import styles from './Movies.module.css';
+
+export default function Movies() {
+  const [results, setResults] = useState([]);
+  const [hero, setHero] = useState(null); // এখানে একটি মুভি থাকবে
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [player, setPlayer] = useState(null);
+  const playerAnchorRef = useRef(null);
+
+  const loadData = useCallback(async (pageNum) => {
+    setLoading(true);
+    const d = await api.trendingMovies(pageNum);
+    // ঠিক করা হয়েছে: d.results দিয়ে প্রথম মুভিটি নেওয়া হয়েছে
+    if (pageNum === 1 && d.results?.length > 0) setHero(d.results); 
+    setResults(prev => pageNum === 1 ? d.results : [...prev, ...d.results]);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadData(page); }, [page, loadData]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500 && !loading) {
+        setPage(p => p + 1);
+      }
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [loading]);
+
+  function select(item) {
+    setPlayer({ src: movieEmbedUrl(item.id), title: item.title, year: getYear(item.release_date), rating: formatRating(item.vote_average) });
+    setTimeout(() => playerAnchorRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+  }
+
+  return (
+    <div className={styles.container}>
+      {hero && (
+        <div className={styles.hero} style={{ backgroundImage: `url(https://image.tmdb.org/t/p/original${hero.backdrop_path})` }}>
+          <div className={styles.heroContent}>
+            <h1>{hero.title}</h1>
+            <p>{hero.overview?.slice(0, 150)}...</p>
+            <button onClick={() => select(hero)}>প্লে করুন</button>
+          </div>
+        </div>
+      )}
+      {player && <div ref={playerAnchorRef}><Player {...player} onClose={() => setPlayer(null)} /></div>}
+      <MediaGrid items={results} type="movie" onSelect={select} />
+    </div>
+  );
+}
