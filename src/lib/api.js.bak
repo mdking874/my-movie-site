@@ -1,0 +1,20 @@
+export const TMDB_KEY = '2f7af29f7b3212357b2cabc9e79f0f9f';
+export const EMBED_API_KEY = 'nx_4be6d62b58bb8c89e7f06cc9b055a43b';
+export const EMBED_BASE = 'https://api.codespecters.com';
+
+async function tmdbFetch(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  const res = await fetch(`https://api.themoviedb.org/3${path}${sep}api_key=${TMDB_KEY}`);
+  return res.json();
+}
+
+export const api = {
+  trendingMovies: (page) => tmdbFetch(`/trending/movie/week?page=${page}`),
+};
+
+export function movieEmbedUrl(tmdbId) {
+  return `${EMBED_BASE}/embed/movie/${tmdbId}?apikey=${EMBED_API_KEY}`;
+}
+
+export function formatRating(r) { return r ? parseFloat(r).toFixed(1) : null; }
+export function getYear(d) { return (d || '').slice(0, 4); }
